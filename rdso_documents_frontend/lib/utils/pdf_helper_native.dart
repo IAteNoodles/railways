@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:open_filex/open_filex.dart';
 
 Future<Uint8List?> fetchPdfBytes(
     String url, Map<String, String> headers) async {
@@ -64,10 +64,7 @@ Widget buildPdfViewer(Uint8List bytes) {
 }
 
 Future<void> openPdfFile(String path) async {
-  final uri = Uri.file(path);
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri);
-  }
+  await OpenFilex.open(path);
 }
 
 /// Save bytes to a temp file and return the path (for sharing).
