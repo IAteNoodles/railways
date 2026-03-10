@@ -1,9 +1,8 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:ux4g/ux4g.dart';
-import '../services/auth_service.dart';
+import 'package:share_plus/share_plus.dart';
 import '../config/api_config.dart';
 import '../services/api_service.dart';
 import '../services/post_service.dart';
@@ -41,7 +40,7 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
       _documentId = arg['documentId'];
     }
     if (_documentId != null) {
-      _pdfUrl = '${ApiConfig.baseUrl}/documents/$_documentId/pdf/';
+      _pdfUrl = '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=false';
       if (_pdfBytes == null && !_isLoadingPdf) _loadPdf();
       if (_feedback.isEmpty) _loadFeedback();
     }
@@ -56,14 +55,29 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
     });
     try {
       final headers = await ApiService().authHeaders();
-      final url = '${ApiConfig.baseUrl}/documents/$_documentId/pdf/';
+      final url = '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=false';
+      debugPrint('[PdfViewScreen] _loadPdf: fetching $url');
       final bytes = await fetchPdfBytes(url, headers);
       if (!mounted) return;
-      if (bytes != null && bytes.isNotEmpty) {
-        setState(() {
-          _pdfBytes = bytes;
-          _isLoadingPdf = false;
-        });
+      debugPrint('[PdfViewScreen] _loadPdf: received ${bytes?.length ?? 0} bytes');
+      if (bytes != null && bytes.length > 4) {
+        // Validate PDF magic number (%PDF)
+        final magic = String.fromCharCodes(bytes.sublist(0, 5));
+        debugPrint('[PdfViewScreen] _loadPdf: magic=$magic');
+        if (bytes[0] == 0x25 && bytes[1] == 0x50 && bytes[2] == 0x44 && bytes[3] == 0x46) {
+          setState(() {
+            _pdfBytes = bytes;
+            _isLoadingPdf = false;
+          });
+        } else {
+          // Server returned non-PDF (likely JSON error)
+          final text = String.fromCharCodes(bytes);
+          setState(() {
+            _pdfError = true;
+            _pdfErrorMessage = 'Server returned non-PDF response: $text';
+            _isLoadingPdf = false;
+          });
+        }
       } else {
         setState(() {
           _pdfError = true;
@@ -153,17 +167,28 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
     try {
       final headers = await ApiService().authHeaders();
       final url =
-          '${ApiConfig.baseUrl}/documents/$_documentId/pdf/?download=true';
+          '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=true';
       final bytes = await fetchPdfBytes(url, headers);
       if (!mounted) return;
 
       if (bytes != null && bytes.isNotEmpty) {
-        final path = await savePdfFile(bytes, '$_documentId.pdf');
+        final fileName = '$_documentId.pdf';
+        final path = await savePdfFile(bytes, fileName);
         if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content:
-                  Text(kIsWeb ? 'Download started' : 'Saved to $path')),
+            content: Text(kIsWeb
+                ? '$fileName downloaded'
+                : '$fileName downloaded at $path'),
+            duration: const Duration(seconds: 5),
+            action: kIsWeb
+                ? null
+                : SnackBarAction(
+                    label: 'Open',
+                    onPressed: () => openPdfFile(path),
+                  ),
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -174,6 +199,50 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Download error: $e')),
+      );
+    }
+  }
+
+  Future<void> _sharePdf() async {
+    if (_documentId == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Preparing to share...')),
+    );
+
+    try {
+      final headers = await ApiService().authHeaders();
+      final url =
+          '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=true';
+      final bytes = await fetchPdfBytes(url, headers);
+      if (!mounted) return;
+
+      if (bytes != null && bytes.isNotEmpty) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+
+        if (kIsWeb) {
+          // On web, just trigger a download
+          await savePdfFile(bytes, '$_documentId.pdf');
+          return;
+        }
+
+        // Save to temp dir for sharing
+        final fileName = '$_documentId.pdf';
+        final tempPath = await savePdfToTemp(bytes, fileName);
+
+        await Share.shareXFiles(
+          [XFile(tempPath)],
+          text: _name,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load PDF for sharing')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Share error: $e')),
       );
     }
   }
@@ -222,10 +291,20 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
                   variant: Ux4gButtonVariant.primary,
                   style: Ux4gButtonStyle.outline,
                   icon: const Icon(Icons.feedback),
-                  child: const Text('Add Feedback'),
+                  child: const Text('Feedback'),
                 ),
               ),
-              const SizedBox(width: Ux4gSpacing.md),
+              const SizedBox(width: Ux4gSpacing.sm),
+              Expanded(
+                child: Ux4gButton(
+                  onPressed: _sharePdf,
+                  variant: Ux4gButtonVariant.primary,
+                  style: Ux4gButtonStyle.outline,
+                  icon: const Icon(Icons.share),
+                  child: const Text('Share'),
+                ),
+              ),
+              const SizedBox(width: Ux4gSpacing.sm),
               Expanded(
                 child: Ux4gButton(
                   onPressed: _downloadPdf,
@@ -275,40 +354,7 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
       return const Center(child: Text('No PDF data'));
     }
 
-    final hrmsId = context.read<AuthService>().currentUser?.hrmsId ?? 'Unknown';
-
-    return Stack(
-      children: [
-        buildPdfViewer(_pdfBytes!),
-        IgnorePointer(
-          child: Opacity(
-            opacity: 0.15,
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 2,
-              ),
-              itemBuilder: (context, index) {
-                return Center(
-                  child: Transform.rotate(
-                    angle: -0.5,
-                    child: Text(
-                      'RDSO - $hrmsId',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ],
-    );
+    return buildPdfViewer(_pdfBytes!);
   }
 
   Widget _buildFeedbackList() {

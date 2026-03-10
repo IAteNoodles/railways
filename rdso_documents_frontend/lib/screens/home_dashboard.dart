@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:ux4g/ux4g.dart';
 import '../widgets/app_drawer.dart';
 import '../services/document_service.dart';
+import '../services/download_queue_service.dart';
 import '../models/document.dart';
 import '../models/category.dart';
 
@@ -77,6 +79,39 @@ class _HomeDashboardState extends State<HomeDashboard> {
             ),
           ),
           const Divider(height: 1),
+          Consumer<DownloadQueueService>(
+            builder: (context, queue, _) {
+              if (queue.pendingCount == 0 && queue.activeCount == 0) {
+                return const SizedBox.shrink();
+              }
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Ux4gSpacing.md,
+                  vertical: Ux4gSpacing.sm,
+                ),
+                color: Ux4gColors.primary.withValues(alpha: 0.1),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: Ux4gSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Downloading ${queue.activeCount + queue.pendingCount} document(s)...',
+                        style: const TextStyle(
+                          fontSize: Ux4gTypography.sizeSmall,
+                          fontWeight: Ux4gTypography.weightSemiBold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())

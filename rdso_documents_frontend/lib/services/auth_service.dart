@@ -8,10 +8,12 @@ import '../models/user.dart';
 class AuthService extends ChangeNotifier {
   User? _currentUser;
   bool _isLoading = false;
+  bool _isInitialized = false;
   String? _error;
 
   User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
+  bool get isInitialized => _isInitialized;
   String? get error => _error;
   bool get isLoggedIn => _currentUser != null;
   bool get isAdmin => _currentUser?.isStaff == true;
@@ -47,9 +49,52 @@ class AuthService extends ChangeNotifier {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token');
-    if (token != null) {
+    final accessToken = prefs.getString('access_token');
+    final refreshToken = prefs.getString('refresh_token');
+
+    if (accessToken != null) {
+      // Try fetching profile with existing access token
       await fetchProfile();
+
+      // If profile fetch failed (expired token), try refreshing
+      if (_currentUser == null && refreshToken != null) {
+        final refreshed = await _refreshAccessToken();
+        if (refreshed) {
+          await fetchProfile();
+        }
+      }
+    }
+
+    _isInitialized = true;
+    notifyListeners();
+  }
+
+  /// Refresh the access token using the stored refresh token.
+  /// Returns true if successful.
+  Future<bool> _refreshAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final refreshToken = prefs.getString('refresh_token');
+    if (refreshToken == null) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/refresh/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh': refreshToken}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await prefs.setString('access_token', data['access']);
+        return true;
+      } else {
+        // Refresh token is invalid/expired — clear tokens
+        await prefs.remove('access_token');
+        await prefs.remove('refresh_token');
+        return false;
+      }
+    } catch (_) {
+      return false;
     }
   }
 

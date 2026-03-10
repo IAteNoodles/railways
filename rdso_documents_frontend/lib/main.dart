@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ux4g/ux4g.dart';
 import 'services/auth_service.dart';
+import 'services/download_queue_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_dashboard.dart';
@@ -14,8 +15,11 @@ import 'screens/admin/audit_logs_screen.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AuthService()..init(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()..init()),
+        ChangeNotifierProvider(create: (_) => DownloadQueueService()..init()),
+      ],
       child: const RdsoDocumentsApp(),
     ),
   );
@@ -33,7 +37,7 @@ class RdsoDocumentsApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Ux4gColors.primary),
         useMaterial3: true,
       ),
-      initialRoute: '/login',
+      home: const _AuthGate(),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
@@ -46,5 +50,47 @@ class RdsoDocumentsApp extends StatelessWidget {
         '/admin/logs': (context) => const AuditLogsScreen(),
       },
     );
+  }
+}
+
+/// Decides initial screen: splash while loading, then home or login.
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+
+    if (!auth.isInitialized) {
+      // Splash screen while checking stored tokens
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.shield, size: 64, color: Ux4gColors.primary),
+              const SizedBox(height: Ux4gSpacing.md),
+              const Text(
+                'RDSO Documents',
+                style: TextStyle(
+                  fontSize: Ux4gTypography.sizeH3,
+                  fontWeight: Ux4gTypography.weightBold,
+                  color: Ux4gColors.primary,
+                ),
+              ),
+              const SizedBox(height: Ux4gSpacing.xl),
+              const CircularProgressIndicator(),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (auth.isLoggedIn) {
+      return const HomeDashboard();
+    }
+
+    return const LoginScreen();
   }
 }

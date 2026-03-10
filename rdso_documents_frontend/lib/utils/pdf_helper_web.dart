@@ -45,3 +45,11 @@ Widget buildPdfViewer(Uint8List bytes) {
   });
   return HtmlElementView(viewType: viewType);
 }
+
+Future<void> openPdfFile(String path) async {
+  // On web, files are auto-downloaded by the browser — no-op
+}
+
+Future<String> savePdfToTemp(Uint8List bytes, String fileName) async {
+  return '';
+}
