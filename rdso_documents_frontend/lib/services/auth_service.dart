@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../models/user.dart';
 import 'api_service.dart';
 
 class AuthService extends ChangeNotifier {
+  final _storage = const FlutterSecureStorage();
   User? _currentUser;
   bool _isLoading = false;
   bool _isInitialized = false;
@@ -49,9 +50,8 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString('access_token');
-    final refreshToken = prefs.getString('refresh_token');
+    final accessToken = await _storage.read(key: 'access_token');
+    final refreshToken = await _storage.read(key: 'refresh_token');
 
     if (accessToken != null) {
       // Try fetching profile with existing access token
@@ -84,9 +84,8 @@ class AuthService extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('access_token', data['access']);
-        await prefs.setString('refresh_token', data['refresh']);
+        await _storage.write(key: 'access_token', value: data['access']);
+        await _storage.write(key: 'refresh_token', value: data['refresh']);
         await fetchProfile();
         _isLoading = false;
         notifyListeners();
@@ -107,8 +106,7 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> fetchProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token');
+    final token = await _storage.read(key: 'access_token');
     if (token == null) return;
 
     try {
@@ -132,9 +130,8 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token');
-    await prefs.remove('refresh_token');
+    await _storage.delete(key: 'access_token');
+    await _storage.delete(key: 'refresh_token');
     _currentUser = null;
     notifyListeners();
   }

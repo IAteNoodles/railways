@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:ux4g/ux4g.dart';
 import 'package:share_plus/share_plus.dart';
 import '../config/api_config.dart';
@@ -57,14 +57,14 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
     try {
       final headers = await ApiService().authHeaders();
       final url = '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=false';
-      debugPrint('[PdfViewScreen] _loadPdf: fetching $url');
+      if (kDebugMode) debugPrint('[PdfViewScreen] _loadPdf: fetching $url');
       final bytes = await fetchPdfBytes(url, headers);
       if (!mounted) return;
-      debugPrint('[PdfViewScreen] _loadPdf: received ${bytes?.length ?? 0} bytes');
+      if (kDebugMode) debugPrint('[PdfViewScreen] _loadPdf: received ${bytes?.length ?? 0} bytes');
       if (bytes != null && bytes.length > 4) {
         // Validate PDF magic number (%PDF)
         final magic = String.fromCharCodes(bytes.sublist(0, 5));
-        debugPrint('[PdfViewScreen] _loadPdf: magic=$magic');
+        if (kDebugMode) debugPrint('[PdfViewScreen] _loadPdf: magic=$magic');
         if (bytes[0] == 0x25 && bytes[1] == 0x50 && bytes[2] == 0x44 && bytes[3] == 0x46) {
           setState(() {
             _pdfBytes = bytes;
@@ -73,9 +73,10 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
         } else {
           // Server returned non-PDF (likely JSON error)
           final text = String.fromCharCodes(bytes);
+          if (kDebugMode) debugPrint('[PdfViewScreen] non-PDF response: $text');
           setState(() {
             _pdfError = true;
-            _pdfErrorMessage = 'Server returned non-PDF response: $text';
+            _pdfErrorMessage = 'Unable to load document. Please try again later.';
             _isLoadingPdf = false;
           });
         }
@@ -88,9 +89,10 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      if (kDebugMode) debugPrint('[PdfViewScreen] _loadPdf error: $e');
       setState(() {
         _pdfError = true;
-        _pdfErrorMessage = e.toString();
+        _pdfErrorMessage = 'An unexpected error occurred while loading the document.';
         _isLoadingPdf = false;
       });
     }
@@ -198,8 +200,9 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      if (kDebugMode) debugPrint('[PdfViewScreen] download error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Download error: $e')),
+        const SnackBar(content: Text('Download failed. Please try again.')),
       );
     }
   }
@@ -242,8 +245,9 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      if (kDebugMode) debugPrint('[PdfViewScreen] share error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Share error: $e')),
+        const SnackBar(content: Text('Failed to share document. Please try again.')),
       );
     }
   }

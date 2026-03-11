@@ -1,6 +1,6 @@
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 
 class ApiService {
@@ -8,14 +8,14 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._();
 
+  final _storage = const FlutterSecureStorage();
+
   Future<String?> _getAccessToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('access_token');
+    return await _storage.read(key: 'access_token');
   }
 
   Future<String?> _getRefreshToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('refresh_token');
+    return await _storage.read(key: 'refresh_token');
   }
 
   Future<bool> refreshToken() async {
@@ -30,8 +30,7 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('access_token', data['access']);
+      await _storage.write(key: 'access_token', value: data['access']);
       return true;
     }
     return false;

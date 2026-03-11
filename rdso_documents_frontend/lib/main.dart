@@ -13,6 +13,7 @@ import 'screens/notifications_screen.dart';
 import 'screens/admin/user_management_screen.dart';
 import 'screens/admin/create_document_screen.dart';
 import 'screens/admin/audit_logs_screen.dart';
+import 'widgets/admin_guard.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,9 +53,9 @@ class RdsoDocumentsApp extends StatelessWidget {
         '/results': (context) => const CategoryResultsScreen(),
         '/pdf': (context) => const PdfViewScreen(),
         '/notifications': (context) => const NotificationsScreen(),
-        '/admin/users': (context) => const UserManagementScreen(),
-        '/admin/create-document': (context) => const CreateDocumentScreen(),
-        '/admin/logs': (context) => const AuditLogsScreen(),
+        '/admin/users': (context) => const AdminGuard(child: UserManagementScreen()),
+        '/admin/create-document': (context) => const AdminGuard(child: CreateDocumentScreen()),
+        '/admin/logs': (context) => const AdminGuard(child: AuditLogsScreen()),
       },
     );
   }
