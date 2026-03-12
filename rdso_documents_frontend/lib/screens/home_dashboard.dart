@@ -149,6 +149,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
       },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             iconForCategory(cat.name),
@@ -156,14 +157,16 @@ class _HomeDashboardState extends State<HomeDashboard> {
             color: Ux4gColors.primary,
           ),
           const SizedBox(height: Ux4gSpacing.sm),
-          Text(
-            cat.name,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontWeight: Ux4gTypography.weightSemiBold,
-              fontSize: Ux4gTypography.sizeBody1,
+          Flexible(
+            child: Text(
+              cat.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: Ux4gTypography.weightSemiBold,
+                fontSize: Ux4gTypography.sizeBody1,
+              ),
             ),
           ),
           const SizedBox(height: Ux4gSpacing.xs),

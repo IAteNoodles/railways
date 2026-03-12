@@ -292,12 +292,15 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
       ),
       body: _showFeedback ? _buildFeedbackList() : _buildPdfViewer(),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(Ux4gSpacing.md),
         decoration: const BoxDecoration(
           color: Ux4gColors.white,
           border: Border(top: BorderSide(color: Ux4gColors.borderColor)),
         ),
         child: SafeArea(
+          minimum: const EdgeInsets.symmetric(
+            horizontal: Ux4gSpacing.sm,
+            vertical: Ux4gSpacing.xs,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -305,26 +308,29 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
                   onPressed: _showAddFeedbackDialog,
                   variant: Ux4gButtonVariant.primary,
                   style: Ux4gButtonStyle.outline,
-                  icon: const Icon(Icons.feedback),
+                  size: Ux4gButtonSize.sm,
+                  icon: const Icon(Icons.feedback, size: 16),
                   child: const Text('Feedback'),
                 ),
               ),
-              const SizedBox(width: Ux4gSpacing.sm),
+              const SizedBox(width: Ux4gSpacing.xs),
               Expanded(
                 child: Ux4gButton(
                   onPressed: _sharePdf,
                   variant: Ux4gButtonVariant.primary,
                   style: Ux4gButtonStyle.outline,
-                  icon: const Icon(Icons.share),
+                  size: Ux4gButtonSize.sm,
+                  icon: const Icon(Icons.share, size: 16),
                   child: const Text('Share'),
                 ),
               ),
-              const SizedBox(width: Ux4gSpacing.sm),
+              const SizedBox(width: Ux4gSpacing.xs),
               Expanded(
                 child: Ux4gButton(
                   onPressed: _downloadPdf,
                   variant: Ux4gButtonVariant.primary,
-                  icon: const Icon(Icons.download),
+                  size: Ux4gButtonSize.sm,
+                  icon: const Icon(Icons.download, size: 16),
                   child: const Text('Download'),
                 ),
               ),
