@@ -3,6 +3,8 @@ import 'package:ux4g/ux4g.dart';
 import '../services/catalog_service.dart';
 import '../models/subhead.dart';
 import '../config/routes.dart';
+import '../utils/category_navigation.dart';
+import '../models/category.dart';
 
 class SubheadListScreen extends StatefulWidget {
   const SubheadListScreen({super.key});
@@ -17,6 +19,8 @@ class _SubheadListScreenState extends State<SubheadListScreen> {
   bool _isLoading = true;
   int? _categoryId;
   String _categoryName = 'Subheads';
+  int _drawingCount = 0;
+  int _subheadCount = 0;
 
   @override
   void didChangeDependencies() {
@@ -27,6 +31,8 @@ class _SubheadListScreenState extends State<SubheadListScreen> {
       if (newId != null && newId != _categoryId) {
         _categoryId = newId;
         _categoryName = arg['categoryName'] as String? ?? 'Subheads';
+        _drawingCount = arg['drawingCount'] as int? ?? 0;
+        _subheadCount = arg['subheadCount'] as int? ?? 0;
         _loadSubheads();
       }
     }
@@ -52,7 +58,7 @@ class _SubheadListScreenState extends State<SubheadListScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _subheads.isEmpty
-              ? const Center(child: Text('No subheads found'))
+            ? _buildEmptyState(context)
               : RefreshIndicator(
                   onRefresh: _loadSubheads,
                   child: ListView.separated(
@@ -101,6 +107,62 @@ class _SubheadListScreenState extends State<SubheadListScreen> {
                     },
                   ),
                 ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    final hasDirectDrawings = _drawingCount > 0 && _subheadCount == 0;
+
+    if (!hasDirectDrawings) {
+      return const Center(child: Text('No subheads found'));
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(Ux4gSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.description_outlined,
+              size: 56,
+              color: Ux4gColors.primary,
+            ),
+            const SizedBox(height: Ux4gSpacing.md),
+            Text(
+              '$_categoryName has direct drawings and no subheads.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: Ux4gTypography.sizeBody1,
+                fontWeight: Ux4gTypography.weightSemiBold,
+              ),
+            ),
+            const SizedBox(height: Ux4gSpacing.sm),
+            Text(
+              'Open $_drawingCount drawing(s)',
+              style: const TextStyle(
+                color: Ux4gColors.gray600,
+                fontSize: Ux4gTypography.sizeSmall,
+              ),
+            ),
+            const SizedBox(height: Ux4gSpacing.md),
+            Ux4gButton(
+              onPressed: () {
+                openCategory(
+                  context,
+                  Category(
+                    id: _categoryId!,
+                    name: _categoryName,
+                    subheadCount: 0,
+                    drawingCount: _drawingCount,
+                  ),
+                );
+              },
+              child: const Text('Open Drawings'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

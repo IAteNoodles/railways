@@ -6,6 +6,7 @@ import '../services/download_queue_service.dart';
 import '../models/document.dart';
 import '../utils/download_helper.dart';
 import '../config/routes.dart';
+import '../config/api_config.dart';
 
 class CategoryResultsScreen extends StatefulWidget {
   const CategoryResultsScreen({super.key});
@@ -147,6 +148,7 @@ class _CategoryResultsScreenState extends State<CategoryResultsScreen> {
                                     'name': doc.name,
                                     'version': doc.version,
                                     'documentId': doc.documentId,
+                                    'documentUrl': doc.buildDocumentUrl(ApiConfig.baseUrl, download: false),
                                     'contentType': doc.contentType,
                                   });
                             },
@@ -218,6 +220,7 @@ class _CategoryResultsScreenState extends State<CategoryResultsScreen> {
                                           'version': doc.version,
                                           'documentId':
                                               doc.documentId,
+                                          'documentUrl': doc.buildDocumentUrl(ApiConfig.baseUrl, download: false),
                                           'contentType':
                                               doc.contentType,
                                         });

@@ -50,4 +50,47 @@ class Document {
       subheadId: json['subhead'],
     );
   }
+
+  String get fetchDocumentId {
+    final fromInternalLink = _documentIdFromInternalLink;
+    if (fromInternalLink != null && fromInternalLink.isNotEmpty) {
+      return fromInternalLink;
+    }
+    if (drawingId != null) {
+      return drawingId.toString();
+    }
+    return documentId;
+  }
+
+  String buildDocumentUrl(String baseUrl, {required bool download}) {
+    if (internalLink.isNotEmpty) {
+      final internalUri = Uri.tryParse(internalLink);
+      if (internalUri != null) {
+        final resolvedUri = internalUri.hasScheme
+            ? internalUri
+            : Uri.parse(baseUrl).resolveUri(internalUri);
+
+        if (resolvedUri.path.endsWith('/documents/') &&
+            resolvedUri.queryParameters.containsKey('document_ids')) {
+          final updatedParameters = Map<String, String>.from(
+            resolvedUri.queryParameters,
+          );
+          updatedParameters['download'] = download.toString();
+          return resolvedUri.replace(queryParameters: updatedParameters).toString();
+        }
+
+        return resolvedUri.toString();
+      }
+    }
+
+    return '${baseUrl}/documents/?document_ids=$fetchDocumentId&download=${download.toString()}';
+  }
+
+  String? get _documentIdFromInternalLink {
+    if (internalLink.isEmpty) {
+      return null;
+    }
+    final uri = Uri.tryParse(internalLink);
+    return uri?.queryParameters['document_ids'];
+  }
 }

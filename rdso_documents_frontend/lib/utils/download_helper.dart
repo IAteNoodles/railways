@@ -14,8 +14,7 @@ Future<void> downloadDocument(BuildContext context, Document doc) async {
 
   try {
     final headers = await ApiService().authHeaders();
-    final url =
-        '${ApiConfig.baseUrl}/documents/?document_ids=${doc.documentId}&download=true';
+    final url = doc.buildDocumentUrl(ApiConfig.baseUrl, download: true);
     final bytes = await fetchPdfBytes(url, headers);
 
     if (!context.mounted) return;

@@ -7,6 +7,7 @@ import '../services/download_queue_service.dart';
 import '../models/category.dart';
 import '../config/routes.dart';
 import '../utils/category_icons.dart';
+import '../utils/category_navigation.dart';
 
 class HomeDashboard extends StatefulWidget {
   const HomeDashboard({super.key});
@@ -142,10 +143,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
   Widget _buildCategoryCard(BuildContext context, Category cat) {
     return Ux4gCard(
       onTap: () {
-        Navigator.pushNamed(context, AppRoutes.subheads, arguments: {
-          'categoryId': cat.id,
-          'categoryName': cat.name,
-        });
+        openCategory(context, cat);
       },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

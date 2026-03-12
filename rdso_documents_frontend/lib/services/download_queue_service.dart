@@ -11,12 +11,14 @@ enum DownloadStatus { pending, downloading, completed, failed }
 class DownloadTask {
   final String documentId;
   final String name;
+  final String? fetchUrl;
   DownloadStatus status;
   String? savedPath;
 
   DownloadTask({
     required this.documentId,
     required this.name,
+    this.fetchUrl,
     this.status = DownloadStatus.pending,
     this.savedPath,
   });
@@ -24,6 +26,7 @@ class DownloadTask {
   Map<String, dynamic> toJson() => {
         'documentId': documentId,
         'name': name,
+        'fetchUrl': fetchUrl,
         'status': status.name,
         'savedPath': savedPath,
       };
@@ -31,6 +34,7 @@ class DownloadTask {
   factory DownloadTask.fromJson(Map<String, dynamic> json) => DownloadTask(
         documentId: json['documentId'],
         name: json['name'],
+        fetchUrl: json['fetchUrl'],
         status: DownloadStatus.values.byName(json['status'] ?? 'pending'),
         savedPath: json['savedPath'],
       );
@@ -117,8 +121,8 @@ class DownloadQueueService extends ChangeNotifier {
 
       try {
         final headers = await ApiService().authHeaders();
-        final url =
-            '${ApiConfig.baseUrl}/documents/?document_ids=${task.documentId}&download=true';
+        final url = task.fetchUrl ??
+          '${ApiConfig.baseUrl}/documents/?document_ids=${task.documentId}&download=true';
         final bytes = await fetchPdfBytes(url, headers);
 
         if (bytes != null && bytes.isNotEmpty) {
