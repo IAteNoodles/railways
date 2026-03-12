@@ -6,6 +6,7 @@ import '../services/download_queue_service.dart';
 import '../models/document.dart';
 import '../utils/download_helper.dart';
 import '../config/routes.dart';
+import '../config/api_config.dart';
 
 class DrawingListScreen extends StatefulWidget {
   const DrawingListScreen({super.key});
@@ -92,7 +93,11 @@ class _DrawingListScreenState extends State<DrawingListScreen>
     if (_selectedIds.isEmpty) return;
     final tasks = _allDocs
         .where((d) => _selectedIds.contains(d.documentId))
-        .map((d) => DownloadTask(documentId: d.documentId, name: d.name))
+      .map((d) => DownloadTask(
+            documentId: d.documentId,
+            name: d.name,
+            fetchUrl: d.buildDocumentUrl(ApiConfig.baseUrl, download: true),
+          ))
         .toList();
     context.read<DownloadQueueService>().enqueue(tasks);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -187,6 +192,7 @@ class _DrawingListScreenState extends State<DrawingListScreen>
                         'name': doc.name,
                         'version': doc.version,
                         'documentId': doc.documentId,
+                        'documentUrl': doc.buildDocumentUrl(ApiConfig.baseUrl, download: false),
                         'contentType': doc.contentType,
                       });
                     },
@@ -279,6 +285,7 @@ class _DrawingListScreenState extends State<DrawingListScreen>
                               'name': doc.name,
                               'version': doc.version,
                               'documentId': doc.documentId,
+                              'documentUrl': doc.buildDocumentUrl(ApiConfig.baseUrl, download: false),
                               'contentType': doc.contentType,
                             });
                           },

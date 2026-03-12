@@ -1,30 +1,62 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:rdso_documents/main.dart';
+import 'package:rdso_documents/services/auth_service.dart';
+import 'package:rdso_documents/services/download_queue_service.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const RdsoDocumentsApp());
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  const secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(secureStorageChannel, (call) async {
+      switch (call.method) {
+        case 'read':
+          return null;
+        case 'write':
+        case 'delete':
+        case 'deleteAll':
+          return null;
+        case 'containsKey':
+          return false;
+        case 'readAll':
+          return <String, String>{};
+        default:
+          return null;
+      }
+    });
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  tearDown(() async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(secureStorageChannel, null);
+  });
+
+  testWidgets('App boots to login when no stored session exists', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthService()..init()),
+          ChangeNotifierProvider(create: (_) => DownloadQueueService()..init()),
+        ],
+        child: const RdsoDocumentsApp(),
+      ),
+    );
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Login'), findsWidgets);
+    expect(find.text('RDSO Documents'), findsWidgets);
+    expect(find.text('HRMS ID'), findsOneWidget);
+    expect(find.text('Password'), findsOneWidget);
   });
 }

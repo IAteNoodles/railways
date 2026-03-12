@@ -22,6 +22,7 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
   List<Post> _feedback = [];
   bool _isLoadingFeedback = false;
   String? _documentId;
+  String? _documentUrl;
   String _name = 'Document';
   String _version = 'Current';
   String _contentType = 'application/pdf';
@@ -42,11 +43,12 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
       _name = arg['name'] ?? _name;
       _version = arg['version'] ?? _version;
       _documentId = arg['documentId'];
+      _documentUrl = arg['documentUrl'];
       _contentType = arg['contentType'] ?? 'application/pdf';
     }
     if (_documentId != null) {
       _initialized = true;
-      _pdfUrl = '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=false';
+      _pdfUrl = _documentUrl ?? '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=false';
       _loadPdf();
       _loadFeedback();
     }
@@ -61,7 +63,7 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
     });
     try {
       final headers = await ApiService().authHeaders();
-      final url = '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=false';
+      final url = _documentUrl ?? '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=false';
       if (kDebugMode) debugPrint('[PdfViewScreen] _loadPdf: fetching $url');
       final bytes = await fetchPdfBytes(url, headers);
       if (!mounted) return;
@@ -178,8 +180,9 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
 
     try {
       final headers = await ApiService().authHeaders();
-      final url =
-          '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=true';
+      final url = _documentUrl == null
+        ? '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=true'
+        : _documentUrl!.replaceFirst('download=false', 'download=true');
       final bytes = await fetchPdfBytes(url, headers);
       if (!mounted) return;
 
@@ -226,8 +229,9 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
 
     try {
       final headers = await ApiService().authHeaders();
-      final url =
-          '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=true';
+      final url = _documentUrl == null
+        ? '${ApiConfig.baseUrl}/documents/?document_ids=$_documentId&download=true'
+        : _documentUrl!.replaceFirst('download=false', 'download=true');
       final bytes = await fetchPdfBytes(url, headers);
       if (!mounted) return;
 

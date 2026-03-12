@@ -8,19 +8,25 @@ import 'api_service.dart';
 class DocumentService {
   final ApiService _api = ApiService();
 
-  Future<List<Document>> getDocuments({List<String>? documentIds}) async {
+  Future<List<Document>> getDocuments({
+    List<String>? documentIds,
+    String? categoryName,
+  }) async {
     final params = <String, String>{};
     if (documentIds != null && documentIds.isNotEmpty) {
       params['document_ids'] = documentIds.join(',');
     }
+    if (categoryName != null && categoryName.isNotEmpty) {
+      params['category'] = categoryName;
+    }
 
     final response = await _api.get('/documents/', queryParams: params.isNotEmpty ? params : null);
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      final List data = decoded is List ? decoded : (decoded['results'] as List);
-      return data.map((d) => Document.fromJson(d)).toList();
+    if (response.statusCode != 200) {
+      return [];
     }
-    return [];
+
+    final decoded = jsonDecode(response.body);
+    return _decodeDocuments(decoded);
   }
 
   Future<Map<String, dynamic>> getDump({DateTime? lastSynced}) async {
@@ -46,8 +52,7 @@ class DocumentService {
   }
 
   Future<List<Document>> getDocumentsByCategory(String categoryName) async {
-    final allDocs = await getDocuments();
-    return allDocs.where((doc) => doc.categories.any((c) => c.name == categoryName)).toList();
+    return getDocuments(categoryName: categoryName);
   }
 
   Future<List<Document>> searchDocuments(String query) async {
@@ -78,5 +83,10 @@ class DocumentService {
       return Document.fromJson(jsonDecode(response.body));
     }
     return null;
+  }
+
+  List<Document> _decodeDocuments(dynamic decoded) {
+    final List data = decoded is List ? decoded : (decoded['results'] as List? ?? <dynamic>[]);
+    return data.map((document) => Document.fromJson(document)).toList();
   }
 }

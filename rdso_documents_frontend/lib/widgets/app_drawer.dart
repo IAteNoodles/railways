@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../models/category.dart';
 import '../config/routes.dart';
 import '../utils/category_icons.dart';
+import '../utils/category_navigation.dart';
 
 Ux4gSidebar buildAppDrawer(BuildContext context, {List<Category> categories = const []}) {
   final auth = context.read<AuthService>();
@@ -74,10 +75,7 @@ Ux4gSidebar buildAppDrawer(BuildContext context, {List<Category> categories = co
           title: '${cat.name} (${cat.drawingCount ?? 0})',
           icon: Icon(iconForCategory(cat.name)),
           onTap: () {
-            Navigator.pushNamed(context, AppRoutes.subheads, arguments: {
-              'categoryId': cat.id,
-              'categoryName': cat.name,
-            });
+            openCategory(context, cat);
           },
         )),
         Ux4gSidebarItem(
